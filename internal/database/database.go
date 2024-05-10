@@ -1,12 +1,10 @@
 package database
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"log"
 	"os"
-	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	_ "github.com/joho/godotenv/autoload"
@@ -26,10 +24,10 @@ var (
 	username   = os.Getenv("DB_USERNAME")
 	port       = os.Getenv("DB_PORT")
 	host       = os.Getenv("DB_HOST")
-	dbInstance *service
+	dbInstance *sql.DB
 )
 
-func New() Service {
+func New() *sql.DB {
 	// Reuse Connection
 	if dbInstance != nil {
 		return dbInstance
@@ -39,22 +37,8 @@ func New() Service {
 	if err != nil {
 		log.Fatal(err)
 	}
-	dbInstance = &service{
-		db: db,
-	}
+	dbInstance = db
+	log.Println(connStr)
+	log.Println("Connected to DB 🚀")
 	return dbInstance
-}
-
-func (s *service) Health() map[string]string {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
-
-	err := s.db.PingContext(ctx)
-	if err != nil {
-		log.Fatalf(fmt.Sprintf("db down: %v", err))
-	}
-
-	return map[string]string{
-		"message": "It's healthy",
-	}
 }

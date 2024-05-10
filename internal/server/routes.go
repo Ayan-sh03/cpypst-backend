@@ -1,6 +1,8 @@
 package server
 
 import (
+	"cpypst/internal/auth/handler"
+	"cpypst/internal/handlers/pastes"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -13,8 +15,28 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	r.HandleFunc("/", s.HelloWorldHandler)
 
-	r.HandleFunc("/health", s.healthHandler)
+	//--- Pastes ---//
+	pasteHandler := pastes.PasteHandlerImpl{}
+	r.HandleFunc("/api/v1/paste", func(w http.ResponseWriter, r *http.Request) {
+		pasteHandler.CreatePaste(w, r)
+	}).Methods("POST")
+	r.HandleFunc("/api/v1/paste/{slug:[A-Z]+}", func(w http.ResponseWriter, r *http.Request) {
+		pasteHandler.GetPasteBySlug(w, r)
+	}).Methods("GET")
+	r.HandleFunc("/api/v1/paste/{userid:[0-9]+}/pastes", func(w http.ResponseWriter, r *http.Request) {
+		pasteHandler.GetPastesByUser(w, r)
+	})
 
+
+	//-- User --//
+	userHandler := handler.AuthImpl{}
+
+	r.HandleFunc("/api/v1/user", func(w http.ResponseWriter, r *http.Request) {
+		userHandler.RegisterUserHandler(w, r)
+	}).Methods("POST")
+	r.HandleFunc("/api/v1/user/login", func(w http.ResponseWriter, r *http.Request) {
+		userHandler.LoginUserHandler(w, r)
+	}).Methods("POST")
 	return r
 }
 
@@ -23,16 +45,6 @@ func (s *Server) HelloWorldHandler(w http.ResponseWriter, r *http.Request) {
 	resp["message"] = "Hello World"
 
 	jsonResp, err := json.Marshal(resp)
-	if err != nil {
-		log.Fatalf("error handling JSON marshal. Err: %v", err)
-	}
-
-	_, _ = w.Write(jsonResp)
-}
-
-func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {
-	jsonResp, err := json.Marshal(s.db.Health())
-
 	if err != nil {
 		log.Fatalf("error handling JSON marshal. Err: %v", err)
 	}
